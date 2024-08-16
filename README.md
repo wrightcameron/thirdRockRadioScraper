@@ -17,3 +17,4 @@ Web Scraper to harvest all songs played on the [Third Rock Radio](https://www.th
 ## Resources
 
 - [Online Radio Box](https://onlineradiobox.com/us/thirdrock/playlist/)
+- [Command Line Shell For SQLite](https://www.sqlite.org/cli.html)

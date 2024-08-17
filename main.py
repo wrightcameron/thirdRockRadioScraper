@@ -6,47 +6,31 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 # Globals
-thirdRockPlayListUrl = "https://onlineradiobox.com/us/thirdrock/playlist/"
+third_rock_playlist_url = "https://onlineradiobox.com/us/thirdrock/playlist/"
 dir_path = os.getcwd()
 database_path = os.path.join(dir_path, "data/thirdRockRadio.db")
 
 def run():
-    page = requests.get(thirdRockPlayListUrl)
-    soup = BeautifulSoup(page.content, "html.parser")
-    schedule = soup.find_all("table", {"class": "tablelist-schedule"})
-    if len(schedule) == 0:
-        print("Schedule couldn't be found, doing nothing and exiting.")
-        exit()
-    elif len(schedule) > 1:
-        print("More than one table schedule was found, this shouldn't have happened.")
-    schedule = schedule[0]
-    print(schedule.prettify())
-    # Get all songs in schedule
-    songs = schedule.find_all("tr")
-    for song in songs:
-        time = song.find("td", class_="tablelist-schedule__time")
-        band_and_name = song.find("td", class_="track_history_item")
-        
-        time = time.text.strip()
-        band_and_name = band_and_name.text.split("-", 1)
-        band_name = band_and_name[0].strip()
-        song_name = band_and_name[1].strip()
-        print(f"\"{song_name}\" by \"{band_name}\" played at {time}")
+    # Loop through all days, with 0 being today, and 6 being 7 days ago.
+    for i in range(0, 6):
+        page = requests.get(f"{third_rock_playlist_url}/{i}")
+        parse_page(page.content)
 
 
-def run_test_run():
-    index_path = os.path.join(dir_path, "data/index.html")
+def test_run():
+    index_path = os.path.join(dir_path, "data/yesturday.html")
     # Check if file doesn't exist, if it doesn't bounce.
     if not os.path.exists(index_path):
         print(f"index.html doesn't exist in data dir, run the downloadPage.sh shell script in tools dir and retry.")
         exit(0)
     with open(index_path, "r") as file:
         index_content = file.read()
-    soup = BeautifulSoup(index_content, "html.parser")
-    # TODO Repeat Code
+    parse_page(index_content)
+
+def parse_page(content: str):
+    soup = BeautifulSoup(content, "html.parser")
     date = soup.find_all("ul", {"class": "playlist__schedule"})
     date = date[0].find("span").text.split(" ", 1)
-    _day_of_week = date[0]
     day_month = date[1].split(".", 1)
     day = int(day_month[0])
     month = int(day_month[1])
@@ -57,7 +41,7 @@ def run_test_run():
     elif len(schedule) > 1:
         print("More than one table schedule was found, this shouldn't have happened.")
     schedule = schedule[0]
-    # TODO Before looping through all songs, setup database
+    # Before looping through all songs, setup database
     setup_sqlite()
     # Get all songs in schedule
     songs = schedule.find_all("tr")
@@ -71,7 +55,6 @@ def run_test_run():
         print(f"\"{song_name}\" by \"{band_name}\" played at {time}")
         epoch = get_epoch(month, day, time)
         add_entry(song_name, band_name, epoch)
-
 
 def get_epoch(month: int, day: int, time: str) -> int:
     # Not accurate if pulling from text html, but should be fine for pulling live
@@ -144,7 +127,7 @@ def add_song(name: str, band_id: int) -> int:
     name = name.replace("'","''")
     res = cur.execute(f"SELECT song_id FROM song WHERE song.song_name = '{name}' AND band_id = {band_id};")
     song_id = res.fetchall()
-    # If band id is null, get band id of conflict
+    # If song id is null, add song
     if len(song_id) == 0:
         res = cur.execute(f"INSERT INTO song (song_name, band_id) VALUES ('{name}', {band_id}) ON CONFLICT DO NOTHING RETURNING song_id")
         song_id = res.fetchall()
@@ -188,7 +171,7 @@ if __name__ == "__main__":
         run()
     else:
         print("Running Test")
-        run_test_run()
+        test_run()
     print("********************************************")
     for song in get_song_counts():
         print(f"Song \"{song[0]}\" by \"{song[1]}\" played {song[2]}")

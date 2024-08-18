@@ -160,19 +160,59 @@ def add_broadcast(broadcast_time: int, song_id: int):
         cur.execute(f"INSERT INTO song_broadcast (song_id, broadcast_id) VALUES ({song_id}, {broadcast_id}) ON CONFLICT DO NOTHING")
     con.commit()
 
-def get_song_counts():
+def get_most_common_song(limit: int = 12) -> list:
     con = sqlite3.connect(database_path)
     cur = con.cursor()
-    res = cur.execute(f"""SELECT song_name, band_name, count(*) as count 
-                        FROM song INNER 
+    res = cur.execute(f"""SELECT song_name, band_name, count(*) as count
+                        FROM song INNER
                         JOIN song_broadcast ON song.song_id = song_broadcast.song_id
                         JOIN band ON band.band_id = song.band_id
                         GROUP BY 1, 2
-                        ORDER BY 3 DESC""")
+                        ORDER BY 3 DESC
+                        LIMIT {limit}""")
     songs = res.fetchall()
     con.commit()
     return songs
-    
+
+def get_least_common_song(limit: int = 10) -> list:
+    con = sqlite3.connect(database_path)
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT song_name, band_name, count(*) as count
+                        FROM song INNER
+                        JOIN song_broadcast ON song.song_id = song_broadcast.song_id
+                        JOIN band ON band.band_id = song.band_id
+                        GROUP BY 1, 2
+                        ORDER BY 3 ASC
+                        LIMIT {limit}""")
+    songs = res.fetchall()
+    con.commit()
+    return songs
+
+def get_most_common_artist(limit: int = 12) -> list:
+    con = sqlite3.connect(database_path)
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT band_name, count(*) as count
+                        FROM band INNER
+                        JOIN song ON song.band_id = band.band_id
+                        GROUP BY 1
+                        ORDER BY 2 DESC
+                        LIMIT {limit};""")
+    songs = res.fetchall()
+    con.commit()
+    return songs
+
+def get_least_common_artist(limit: int = 10) -> list:
+    con = sqlite3.connect(database_path)
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT band_name, count(*) as count
+                        FROM band INNER
+                        JOIN song ON song.band_id = band.band_id
+                        GROUP BY 1
+                        ORDER BY 2 ASC
+                        LIMIT {limit};""")
+    songs = res.fetchall()
+    con.commit()
+    return songs
 
 def check_web_robot():
     pass
@@ -180,18 +220,35 @@ def check_web_robot():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--test', help='Uses pre-downloaded song list, used for testing purposes.', action="store_true")
-    parser.add_argument('-d', '--debug', help='Set log level to debug, default is INFO', action="store_false")
+    parser.add_argument('-d', '--debug', help='Set log level to debug, default is INFO', action="store_true")
+    parser.add_argument('-s', '--skip', help='Skip scrap, if you only care about looking at results add -r flag.', action="store_true")
+    parser.add_argument('-r', '--results', help='Get results most common, least common, and new songs', action="store_true")
     args = parser.parse_args()
     if args.debug == True:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    print(f"Collecting Third Rock Radio Song's at { datetime.now() }")
-    if not args.test:
-        run()
+    if not args.skip:
+        print(f"Collecting Third Rock Radio Song's at { datetime.now() }")
+        if not args.test:
+            run()
+        else:
+            print("Running Test")
+            test_run()
+        print("********************************************")
     else:
-        print("Running Test")
-        test_run()
-    print("********************************************")
-    # for song in get_song_counts():
-    #     print(f"Song \"{song[0]}\" by \"{song[1]}\" played {song[2]}")
+        logger.debug("Skipping scrape.")
+    if args.results:
+        print("Results")
+        print("Most Common Song's")
+        for song in get_most_common_song():
+            print(f"\tSong \"{song[0]}\" by \"{song[1]}\" played {song[2]}")
+        print("Least Common Song's")
+        for song in get_least_common_song():
+            print(f"\tSong \"{song[0]}\" by \"{song[1]}\" played {song[2]}")
+        print("Most Common Artist's")
+        for artist in get_most_common_artist():
+            print(f"\tArtist \"{artist[0]}\" songs {artist[1]}")
+        print("Least Common Artist's")
+        for artist in get_least_common_artist():
+            print(f"\tArtist \"{artist[0]}\" songs {artist[1]}")

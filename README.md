@@ -21,12 +21,14 @@ Script will attempt to download HTML from *onlineradiobox.com/us/thirdrock/playl
 
 Entry-point to script is `main.py`, usage: `main.py [-h] [--test] [-d] [-s] [-r]`
 
+```
 options:
   -h, --help     show this help message and exit
   --test         Uses pre-downloaded song list, used for testing purposes.
   -d, --debug    Set log level to debug, default is INFO
   -s, --skip     Skip scrape, if you only care about looking at results add -r flag.
   -r, --results  Get results most common, least common, and new songs
+```
 
 Results can either be seen by running Python script with `--results` flag or using SQLite3 shell and opening thirdRockRadio.db.
 

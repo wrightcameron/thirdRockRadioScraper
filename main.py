@@ -123,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s",
         "--skip",
-        help="Skip scrap, if you only care about looking at results add -r flag.",
+        help="Skip scrape, if you only care about looking at results add -r flag.",
         action="store_true",
     )
     parser.add_argument(
